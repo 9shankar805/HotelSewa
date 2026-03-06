@@ -39,7 +39,13 @@ router.get('/hotel-status', async (req, res) => {
         name: true,
         status: true,
         createdAt: true,
-        updatedAt: true
+        updatedAt: true,
+        _count: {
+          select: {
+            rooms: true,
+            bookings: true
+          }
+        }
       }
     });
 
@@ -47,6 +53,7 @@ router.get('/hotel-status', async (req, res) => {
       return res.json({
         success: true,
         hasHotel: false,
+        needsRooms: false,
         data: null
       });
     }
@@ -54,6 +61,8 @@ router.get('/hotel-status', async (req, res) => {
     res.json({
       success: true,
       hasHotel: true,
+      needsRooms: hotel.status === 'APPROVED' && hotel._count.rooms === 0,
+      roomCount: hotel._count.rooms,
       data: hotel
     });
   } catch (error) {
