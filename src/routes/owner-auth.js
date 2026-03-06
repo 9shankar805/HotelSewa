@@ -181,7 +181,7 @@ router.get('/profile', requireAuth, async (req, res) => {
         phone: true,
         role: true,
         verified: true,
-        avatar: true,
+        profileImage: true,
         googleSub: true,
         createdAt: true,
         updatedAt: true
@@ -204,7 +204,7 @@ router.get('/profile', requireAuth, async (req, res) => {
       success: true,
       data: {
         ...user,
-        profileImageUrl: user.avatar,
+        profileImageUrl: user.profileImage,
         hasHotel: hotelCount > 0
       }
     });
@@ -238,7 +238,7 @@ router.put('/profile', requireAuth, async (req, res) => {
         phone: true,
         role: true,
         verified: true,
-        avatar: true,
+        profileImage: true,
         createdAt: true,
         updatedAt: true
       }
@@ -249,7 +249,7 @@ router.put('/profile', requireAuth, async (req, res) => {
       message: 'Profile updated successfully',
       data: {
         ...user,
-        profileImageUrl: user.avatar
+        profileImageUrl: user.profileImage
       }
     });
   } catch (error) {
@@ -328,7 +328,7 @@ router.post('/profile/upload-avatar', requireAuth, async (req, res) => {
 
     const user = await prisma.user.update({
       where: { id: userId },
-      data: { avatar: imageUrl },
+      data: { profileImage: imageUrl },
       select: {
         id: true,
         email: true,
@@ -336,7 +336,7 @@ router.post('/profile/upload-avatar', requireAuth, async (req, res) => {
         phone: true,
         role: true,
         verified: true,
-        avatar: true,
+        profileImage: true,
         createdAt: true,
         updatedAt: true
       }
@@ -346,10 +346,10 @@ router.post('/profile/upload-avatar', requireAuth, async (req, res) => {
       success: true,
       message: 'Profile picture updated successfully',
       data: {
-        imageUrl: user.avatar,
+        imageUrl: user.profileImage,
         user: {
           ...user,
-          profileImageUrl: user.avatar
+          profileImageUrl: user.profileImage
         }
       }
     });
@@ -370,7 +370,7 @@ router.delete('/profile/avatar', requireAuth, async (req, res) => {
 
     await prisma.user.update({
       where: { id: userId },
-      data: { avatar: null }
+      data: { profileImage: null }
     });
 
     res.json({
@@ -435,10 +435,10 @@ router.post('/google-signin', async (req, res) => {
       }
       
       // Update avatar if provided and not already set
-      if (photoUrl && !user.avatar) {
+      if (photoUrl && !user.profileImage) {
         user = await prisma.user.update({
           where: { id: user.id },
-          data: { avatar: photoUrl }
+          data: { profileImage: photoUrl }
         });
       }
       
@@ -477,7 +477,7 @@ router.post('/google-signin', async (req, res) => {
           phone: '', // Empty phone for Google users
           role: 'OWNER',
           verified: true,
-          avatar: photoUrl || null,
+          profileImage: photoUrl || null,
           googleSub: googleSubValue
         }
       });
@@ -515,7 +515,7 @@ router.post('/google-signin', async (req, res) => {
           phone: user.phone || '',
           role: user.role,
           verified: user.verified,
-          profileImageUrl: user.avatar, // Map avatar to profileImageUrl for Flutter
+          profileImageUrl: user.profileImage, // Map profileImage to profileImageUrl for Flutter
           isEmailVerified: user.verified,
           hasHotel: hasHotel,
           createdAt: user.createdAt,
