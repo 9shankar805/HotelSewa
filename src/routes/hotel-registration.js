@@ -98,11 +98,6 @@ router.post('/register', async (req, res) => {
         // Basic Info
         name,
         description: description || '',
-        propertyType: propertyType || 'HOTEL',
-        totalRooms: totalRooms ? parseInt(totalRooms) : null,
-        yearOfEstablishment: yearOfEstablishment ? parseInt(yearOfEstablishment) : null,
-        priceRangeMin: priceRangeMin ? parseInt(priceRangeMin) : null,
-        priceRangeMax: priceRangeMax ? parseInt(priceRangeMax) : null,
         
         // Location
         address,
@@ -110,31 +105,22 @@ router.post('/register', async (req, res) => {
         state: state || '',
         country: country || 'India',
         pincode: pincode || '',
-        district: district || '',
-        wardNumber: wardNumber ? parseInt(wardNumber) : null,
-        landmark: landmark || '',
-        latitude: latitude ? parseFloat(latitude) : null,
-        longitude: longitude ? parseFloat(longitude) : null,
         
         // Contact
         phone,
         email,
-        checkInTime: '14:00',
-        checkOutTime: '11:00',
+        checkInTime: checkInTime || '14:00',
+        checkOutTime: checkOutTime || '11:00',
         
-        // Agreements
-        termsAccepted: termsAccepted || false,
-        commissionAccepted: commissionAccepted || false,
-        cancellationPolicyAccepted: cancellationPolicyAccepted || false,
-        
-        // Photos (URLs from upload)
-        exteriorPhoto: exteriorPhotoUrl || null,
-        receptionPhoto: receptionPhotoUrl || null,
-        gallery: galleryPhotos ? (typeof galleryPhotos === 'string' ? JSON.parse(galleryPhotos) : galleryPhotos) : [],
+        // Photos - store in images JSON array
+        images: JSON.stringify([
+          exteriorPhotoUrl,
+          receptionPhotoUrl,
+          ...(galleryPhotos ? (typeof galleryPhotos === 'string' ? JSON.parse(galleryPhotos) : galleryPhotos) : [])
+        ].filter(Boolean)),
         
         // Status and defaults
         status: 'PENDING',
-        images: '[]',
         amenities: '[]',
         
         // Owner - using the verified ownerId from token
