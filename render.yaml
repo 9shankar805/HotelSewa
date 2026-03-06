@@ -2,14 +2,21 @@ services:
   - type: web
     name: hotelsewa-api
     env: node
-    buildCommand: npm install && npx prisma generate
+    buildCommand: npm install && npx prisma generate && npx prisma migrate deploy
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        value: mysql://root@209.50.241.46:3306/hotelsewa
+        fromDatabase:
+          name: hotelsewa-db
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
       - key: PORT
         value: 4000
+
+databases:
+  - name: hotelsewa-db
+    databaseName: hotelsewa
+    user: hotelsewa

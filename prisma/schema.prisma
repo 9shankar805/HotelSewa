@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
-  relationMode = "prisma"
 }
 
 model User {
@@ -130,9 +129,9 @@ model Booking {
   payments        Payment?
   conversation    Conversation?
 
-  @@index([hotelId], map: "bookings_hotelId_fkey")
-  @@index([roomId], map: "bookings_roomId_fkey")
-  @@index([userId], map: "bookings_userId_fkey")
+  @@index([hotelId])
+  @@index([roomId])
+  @@index([userId])
   @@map("bookings")
 }
 
@@ -147,8 +146,8 @@ model Review {
   hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([hotelId], map: "reviews_hotelId_fkey")
-  @@index([userId], map: "reviews_userId_fkey")
+  @@index([hotelId])
+  @@index([userId])
   @@map("reviews")
 }
 
