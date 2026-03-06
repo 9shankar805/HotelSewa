@@ -78,15 +78,201 @@ adminRouter.get("/bookings", async (req, res) => {
       include: {
         user: { select: { name: true, email: true } },
         hotel: { select: { name: true, city: true } },
-        room: { select: { name: true, roomNumber: true } }
+        room: { select: { name: true, type: true } }
       },
       orderBy: { createdAt: 'desc' },
       take: 100
     });
-    res.json(list);
+    res.json({ data: list, total: list.length });
   } catch (error) {
     console.error('Error fetching bookings:', error);
-    res.json([]);
+    res.json({ data: [], total: 0 });
+  }
+});
+
+// Get all rooms
+adminRouter.get("/rooms", async (req, res) => {
+  try {
+    const list = await prisma.room.findMany({
+      include: {
+        hotel: { select: { name: true, city: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ data: list, total: list.length });
+  } catch (error) {
+    console.error('Error fetching rooms:', error);
+    res.json({ data: [], total: 0 });
+  }
+});
+
+// Get all reviews
+adminRouter.get("/reviews", async (req, res) => {
+  try {
+    const list = await prisma.review.findMany({
+      include: {
+        user: { select: { name: true, email: true } },
+        hotel: { select: { name: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ data: list, total: list.length });
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    res.json({ data: [], total: 0 });
+  }
+});
+
+// Get all payments
+adminRouter.get("/payments", async (req, res) => {
+  try {
+    const list = await prisma.payment.findMany({
+      include: {
+        booking: {
+          include: {
+            user: { select: { name: true, email: true } },
+            hotel: { select: { name: true } }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ data: list, total: list.length });
+  } catch (error) {
+    console.error('Error fetching payments:', error);
+    res.json({ data: [], total: 0 });
+  }
+});
+
+// Get all offers
+adminRouter.get("/offers", async (req, res) => {
+  try {
+    const list = await prisma.offer.findMany({
+      include: {
+        hotel: { select: { name: true } },
+        user: { select: { name: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ data: list, total: list.length });
+  } catch (error) {
+    console.error('Error fetching offers:', error);
+    res.json({ data: [], total: 0 });
+  }
+});
+
+// Get all coupons
+adminRouter.get("/coupons", async (req, res) => {
+  try {
+    const list = await prisma.coupon.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ data: list, total: list.length });
+  } catch (error) {
+    console.error('Error fetching coupons:', error);
+    res.json({ data: [], total: 0 });
+  }
+});
+
+// Get all wallets
+adminRouter.get("/wallets", async (req, res) => {
+  try {
+    const list = await prisma.wallet.findMany({
+      include: {
+        user: { select: { name: true, email: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ data: list, total: list.length });
+  } catch (error) {
+    console.error('Error fetching wallets:', error);
+    res.json({ data: [], total: 0 });
+  }
+});
+
+// Get all notifications
+adminRouter.get("/notifications", async (req, res) => {
+  try {
+    const list = await prisma.notification.findMany({
+      include: {
+        user: { select: { name: true, email: true } }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100
+    });
+    res.json({ data: list, total: list.length });
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.json({ data: [], total: 0 });
+  }
+});
+
+// Get all documents
+adminRouter.get("/documents", async (req, res) => {
+  try {
+    const list = await prisma.document.findMany({
+      include: {
+        user: { select: { name: true, email: true } },
+        hotel: { select: { name: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ data: list, total: list.length });
+  } catch (error) {
+    console.error('Error fetching documents:', error);
+    res.json({ data: [], total: 0 });
+  }
+});
+
+// Get hotel registration details with all data
+adminRouter.get("/hotels/:id/details", async (req, res) => {
+  try {
+    const hotel = await prisma.hotel.findUnique({
+      where: { id: req.params.id },
+      include: {
+        owner: { select: { id: true, name: true, email: true, phone: true, profileImage: true } },
+        rooms: true,
+        bookings: {
+          include: {
+            user: { select: { name: true, email: true } }
+          },
+          take: 10,
+          orderBy: { createdAt: 'desc' }
+        },
+        reviews: {
+          include: {
+            user: { select: { name: true } }
+          },
+          take: 10,
+          orderBy: { createdAt: 'desc' }
+        },
+        documents: true,
+        _count: {
+          select: {
+            rooms: true,
+            bookings: true,
+            reviews: true
+          }
+        }
+      }
+    });
+    
+    if (!hotel) {
+      return res.status(404).json({ error: 'Hotel not found' });
+    }
+    
+    // Parse images JSON
+    const images = hotel.images ? JSON.parse(hotel.images) : [];
+    const amenities = hotel.amenities ? JSON.parse(hotel.amenities) : [];
+    
+    res.json({
+      ...hotel,
+      images,
+      amenities
+    });
+  } catch (error) {
+    console.error('Error fetching hotel details:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
