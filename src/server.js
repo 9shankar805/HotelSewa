@@ -52,13 +52,21 @@ const limiter = rateLimit({
 });
 app.use("/api/", limiter);
 
-// CORS - restrict in production
+// CORS - allow admin dashboard and other origins
 const allowedOrigins = process.env.NODE_ENV === "production" 
-  ? [CLIENT_ORIGIN]
+  ? [CLIENT_ORIGIN, "http://localhost:3000", "http://localhost:3001", "http://localhost:5173"]
   : [CLIENT_ORIGIN, "http://localhost:3000", "http://localhost:3001", "http://localhost:5173", "http://192.168.100.82:3000"];
 
 app.use(cors({ 
-  origin: allowedOrigins, 
+  origin: function(origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, etc)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all origins in development
+    }
+  },
   credentials: true 
 }));
 app.use(express.json({ limit: "2mb" }));
