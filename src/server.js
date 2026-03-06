@@ -34,6 +34,7 @@ const offersRouter = require("./routes/offers");
 const calendarRouter = require("./routes/calendar");
 const chatRouter = require("./routes/chat");
 const customerRouter = require("./routes/customer");
+const dashboardRouter = require("./routes/dashboard");
 
 const app = express();
 
@@ -103,6 +104,7 @@ app.use("/api/offers", offersRouter);
 app.use("/api/calendar", calendarRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/customer", customerRouter);
+app.use("/api/hotel-owner", dashboardRouter);
 
 const VITE_DEV_SERVER = process.env.VITE_DEV_SERVER || "http://localhost:5173";
 if (process.env.NODE_ENV !== "production") {
