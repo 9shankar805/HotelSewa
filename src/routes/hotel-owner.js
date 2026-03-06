@@ -4,11 +4,87 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { body, validationResult } = require('express-validator');
 
+// Get hotel status for owner
+router.get('/hotel-status', async (req, res) => {
+  try {
+    // Get ownerId from JWT token
+    const authHeader = req.headers.authorization;
+    let ownerId;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        ownerId = decoded.id || decoded.sub || decoded.userId;
+      } catch (e) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid token'
+        });
+      }
+    } else {
+      return res.status(401).json({
+        success: false,
+        message: 'Authorization token required'
+      });
+    }
+    
+    // Find owner's hotel
+    const hotel = await prisma.hotel.findFirst({
+      where: { ownerId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+
+    if (!hotel) {
+      return res.json({
+        success: true,
+        hasHotel: false,
+        data: null
+      });
+    }
+
+    res.json({
+      success: true,
+      hasHotel: true,
+      data: hotel
+    });
+  } catch (error) {
+    console.error('Get hotel status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch hotel status',
+      error: error.message
+    });
+  }
+});
+
 // Get all hotels for the authenticated owner
 router.get('/hotels', async (req, res) => {
   try {
-    // TODO: Add authentication middleware to get owner ID from token
-    const ownerId = req.user?.id || '2fe78aaa-75c9-4b3e-adc0-e6c5c20f2761'; // Mock owner ID
+    // Get ownerId from JWT token
+    const authHeader = req.headers.authorization;
+    let ownerId;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        ownerId = decoded.id || decoded.sub || decoded.userId;
+      } catch (e) {
+        ownerId = req.user?.id || '2fe78aaa-75c9-4b3e-adc0-e6c5c20f2761';
+      }
+    } else {
+      ownerId = req.user?.id || '2fe78aaa-75c9-4b3e-adc0-e6c5c20f2761';
+    }
     
     const hotels = await prisma.hotel.findMany({
       where: { ownerId },
