@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .upload-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .preview img {
+            max-width: 150px;
+            max-height: 150px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .result {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Image Upload Test</h1>
+    
+    <!-- Single Image Upload -->
+    <div class="upload-section">
+        <h3>Single Image Upload</h3>
+        <input type="file" id="singleFile" accept="image/*">
+        <select id="singleType">
+            <option value="hotel">Hotel</option>
+            <option value="room">Room</option>
+            <option value="user">User</option>
+            <option value="review">Review</option>
+            <option value="general">General</option>
+        </select>
+        <button onclick="uploadSingle()">Upload Single</button>
+        <div id="singleResult" class="result"></div>
+        <div id="singlePreview" class="preview"></div>
+    </div>
+
+    <!-- Multiple Images Upload -->
+    <div class="upload-section">
+        <h3>Multiple Images Upload</h3>
+        <input type="file" id="multipleFiles" accept="image/*" multiple>
+        <select id="multipleType">
+            <option value="hotel">Hotel</option>
+            <option value="room">Room</option>
+            <option value="user">User</option>
+            <option value="review">Review</option>
+            <option value="general">General</option>
+        </select>
+        <button onclick="uploadMultiple()">Upload Multiple</button>
+        <div id="multipleResult" class="result"></div>
+        <div id="multiplePreview" class="preview"></div>
+    </div>
+
+    <!-- Hotel Images Upload -->
+    <div class="upload-section">
+        <h3>Hotel Images Upload (with Hotel ID)</h3>
+        <input type="text" id="hotelId" placeholder="Enter Hotel ID" value="test-hotel-id">
+        <input type="file" id="hotelFiles" accept="image/*" multiple>
+        <button onclick="uploadHotelImages()">Upload to Hotel</button>
+        <div id="hotelResult" class="result"></div>
+        <div id="hotelPreview" class="preview"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+
+        async function uploadSingle() {
+            const fileInput = document.getElementById('singleFile');
+            const type = document.getElementById('singleType').value;
+            const resultDiv = document.getElementById('singleResult');
+            const previewDiv = document.getElementById('singlePreview');
+
+            if (!fileInput.files[0]) {
+                resultDiv.textContent = 'Please select a file';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            formData.append('type', type);
+
+            try {
+                const response = await fetch(`${API_BASE}/upload/single`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                resultDiv.textContent = JSON.stringify(result, null, 2);
+
+                if (result.success) {
+                    previewDiv.innerHTML = `<img src="${result.data.url}" alt="Uploaded image">`;
+                }
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        async function uploadMultiple() {
+            const fileInput = document.getElementById('multipleFiles');
+            const type = document.getElementById('multipleType').value;
+            const resultDiv = document.getElementById('multipleResult');
+            const previewDiv = document.getElementById('multiplePreview');
+
+            if (!fileInput.files.length) {
+                resultDiv.textContent = 'Please select files';
+                return;
+            }
+
+            const formData = new FormData();
+            for (let file of fileInput.files) {
+                formData.append('images', file);
+            }
+            formData.append('type', type);
+
+            try {
+                const response = await fetch(`${API_BASE}/upload/multiple`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                resultDiv.textContent = JSON.stringify(result, null, 2);
+
+                if (result.success) {
+                    previewDiv.innerHTML = result.data.map(img => 
+                        `<img src="${img.url}" alt="Uploaded image">`
+                    ).join('');
+                }
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        async function uploadHotelImages() {
+            const hotelId = document.getElementById('hotelId').value;
+            const fileInput = document.getElementById('hotelFiles');
+            const resultDiv = document.getElementById('hotelResult');
+            const previewDiv = document.getElementById('hotelPreview');
+
+            if (!hotelId) {
+                resultDiv.textContent = 'Please enter a hotel ID';
+                return;
+            }
+
+            if (!fileInput.files.length) {
+                resultDiv.textContent = 'Please select files';
+                return;
+            }
+
+            const formData = new FormData();
+            for (let file of fileInput.files) {
+                formData.append('images', file);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/upload/hotel/${hotelId}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                resultDiv.textContent = JSON.stringify(result, null, 2);
+
+                if (result.success) {
+                    previewDiv.innerHTML = result.data.uploadedImages.map(url => 
+                        `<img src="${url}" alt="Hotel image">`
+                    ).join('');
+                }
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        // Preview images before upload
+        document.getElementById('singleFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('singlePreview').innerHTML = 
+                        `<img src="${e.target.result}" alt="Preview">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('multipleFiles').addEventListener('change', function(e) {
+            const preview = document.getElementById('multiplePreview');
+            preview.innerHTML = '';
+            
+            for (let file of e.target.files) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML += `<img src="${e.target.result}" alt="Preview">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('hotelFiles').addEventListener('change', function(e) {
+            const preview = document.getElementById('hotelPreview');
+            preview.innerHTML = '';
+            
+            for (let file of e.target.files) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML += `<img src="${e.target.result}" alt="Preview">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>

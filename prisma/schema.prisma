@@ -1,0 +1,578 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+model User {
+  id                   String         @id @default(uuid())
+  email                String         @unique
+  name                 String
+  phone                String?
+  profileImage         String?
+  passwordHash         String?
+  role                 String         @default("CUSTOMER")
+  verified             Boolean        @default(false)
+  profileComplete      Boolean        @default(true)
+  googleSub            String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  bookings             Booking[]
+  ownedHotels          Hotel[]
+  reviews              Review[]
+  sentMessages         Message[]      @relation("SentMessages")
+  receivedMessages     Message[]      @relation("ReceivedMessages")
+  guestConversations   Conversation[] @relation("GuestConversations")
+  ownerConversations   Conversation[] @relation("OwnerConversations")
+  notifications        Notification[]
+  documents            Document[]
+  supportTickets       SupportTicket[]
+  withdrawals          Withdrawal[]
+  offers               Offer[]
+  calendarDailyData     CalendarDailyData[]
+  calendarBookings     CalendarBooking[]
+  calendarRoomAvailability CalendarRoomAvailability[]
+  calendarPricing       CalendarPricing[]
+  chatConversations     ChatConversation[]
+  chatMessages         ChatMessage[]
+  chatOnlineStatus      ChatOnlineStatus[]
+  chatAnalytics        ChatAnalytics[]
+  offerAnalytics       OfferAnalytics[]
+  calendarAnalytics     CalendarAnalytics[]
+  wallet               Wallet?
+  savedHotels          SavedHotel[]
+
+  @@map("users")
+}
+
+model Hotel {
+  id            String         @id @default(uuid())
+  ownerId       String
+  name          String
+  description   String?
+  address       String
+  city          String
+  state         String
+  country       String         @default("India")
+  pincode       String
+  phone         String
+  email         String
+  checkInTime   String         @default("14:00")
+  checkOutTime  String         @default("11:00")
+  amenities    String         @default("[]")  // JSON string for SQLite
+  images       String         @default("[]")  // JSON string for SQLite
+  status       String         @default("PENDING")
+  rating       Float?
+  reviewsCount Int            @default(0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  rooms        Room[]
+  bookings     Booking[]
+  reviews      Review[]
+  owner        User           @relation(fields: [ownerId], references: [id])
+  documents    Document[]
+  offers       Offer[]
+  calendarDailyData CalendarDailyData[]
+  calendarBookings CalendarBooking[]
+  calendarRoomAvailability CalendarRoomAvailability[]
+  calendarPricing CalendarPricing[]
+  chatConversations ChatConversation[]
+  chatAnalytics ChatAnalytics[]
+  conversations Conversation[]
+  calendarAnalytics CalendarAnalytics[]
+  savedHotels   SavedHotel[]
+
+  @@map("hotels")
+}
+
+model Room {
+  id            String         @id @default(uuid())
+  hotelId       String
+  name          String
+  type          String
+  description   String?
+  pricePerNight Float
+  capacity      Int
+  inventory     Int
+  amenities    String         @default("[]")  // JSON string for SQLite
+  images        String         @default("[]")  // JSON string for SQLite
+  status        String         @default("available")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  hotel         Hotel           @relation(fields: [hotelId], references: [id])
+  bookings     Booking[]
+  calendarRoomAvailability CalendarRoomAvailability[]
+}
+
+model Booking {
+  id              String         @id @default(uuid())
+  userId          String
+  hotelId         String
+  roomId          String
+  checkInDate     DateTime
+  checkOutDate    DateTime
+  guests          Int            @default(1)
+  totalAmount     Float
+  status          String         @default("CONFIRMED")
+  paymentStatus   String         @default("PENDING")
+  specialRequests String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  hotel           Hotel          @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  room            Room           @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments        Payment?
+  conversation    Conversation?
+
+  @@index([hotelId], map: "bookings_hotelId_fkey")
+  @@index([roomId], map: "bookings_roomId_fkey")
+  @@index([userId], map: "bookings_userId_fkey")
+  @@map("bookings")
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  hotelId   String
+  userId    String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([hotelId], map: "reviews_hotelId_fkey")
+  @@index([userId], map: "reviews_userId_fkey")
+  @@map("reviews")
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  bookingId       String        @unique
+  amount          Float
+  currency        String        @default("INR")
+  status          String        @default("PENDING")
+  method          String?
+  stripePaymentId String?
+  stripeRefundId  String?
+  failureReason   String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  booking         Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String
+  senderId       String
+  receiverId     String
+  content        String
+  messageType    String   @default("text")
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver       User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@map("messages")
+}
+
+model Conversation {
+  id        String    @id @default(uuid())
+  bookingId String?   @unique
+  hotelId   String
+  guestId   String
+  ownerId   String
+  lastMessage String?
+  lastMessageAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  messages  Message[]
+  booking   Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  hotel     Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  guest     User      @relation("GuestConversations", fields: [guestId], references: [id], onDelete: Cascade)
+  owner     User      @relation("OwnerConversations", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([hotelId])
+  @@index([guestId])
+  @@index([ownerId])
+  @@map("conversations")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String
+  isRead    Boolean  @default(false)
+  data      String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+model Offer {
+  id          String   @id @default(uuid())
+  hotelId     String
+  userId      String
+  title       String
+  description String?
+  discountType String  // percentage, fixed
+  discountValue Float
+  minAmount   Float?
+  maxDiscount Float?
+  validFrom   DateTime
+  validTo     DateTime
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  hotel       Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([hotelId])
+  @@index([userId])
+  @@map("offers")
+}
+
+model Amenity {
+  id          String @id @default(uuid())
+  name        String
+  icon        String?
+  category    String
+  description String?
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("amenities")
+}
+
+model Document {
+  id        String   @id @default(uuid())
+  userId    String
+  hotelId   String?
+  name      String
+  type      String
+  url       String
+  size      Int?
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hotel     Hotel?   @relation(fields: [hotelId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([hotelId])
+  @@map("documents")
+}
+
+model SupportTicket {
+  id          String   @id @default(uuid())
+  userId      String
+  subject     String
+  description String
+  status      String   @default("open")
+  priority    String   @default("medium")
+  category    String
+  response    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("support_tickets")
+}
+
+model Withdrawal {
+  id            String   @id @default(uuid())
+  userId        String
+  amount        Float
+  bankAccount   String
+  ifscCode      String?
+  status        String   @default("pending")
+  processedAt   DateTime?
+  failureReason String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("withdrawals")
+}
+
+// Calendar Models
+model CalendarDailyData {
+  id          String   @id @default(uuid())
+  userId      String
+  hotelId     String
+  date        DateTime
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hotel       Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@unique([hotelId, date])
+  @@map("calendar_daily_data")
+}
+
+model CalendarBooking {
+  id            String   @id @default(uuid())
+  userId        String
+  hotelId       String
+  roomId        String?
+  checkIn       DateTime
+  checkOut      DateTime
+  guests        Int
+  totalAmount   Float
+  status        String   @default("PENDING")
+  paymentStatus String   @default("PENDING")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hotel         Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([hotelId])
+  @@map("calendar_bookings")
+}
+
+model CalendarRoomAvailability {
+  id          String   @id @default(uuid())
+  hotelId     String
+  roomId      String?
+  userId      String
+  date        DateTime
+  available   Int      @default(0)
+  booked      Int      @default(0)
+  price       Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  hotel       Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  room        Room?    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([hotelId, roomId, date])
+  @@map("calendar_room_availability")
+}
+
+model CalendarPricing {
+  id          String   @id @default(uuid())
+  hotelId     String
+  userId      String
+  date        DateTime
+  basePrice   Float
+  finalPrice  Float
+  priceType   String   @default("dynamic")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  hotel       Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([hotelId, date])
+  @@map("calendar_pricing")
+}
+
+// Chat Models
+model ChatConversation {
+  id          String   @id @default(uuid())
+  userId      String
+  hotelId     String
+  lastMessage String?
+  lastMessageAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hotel       Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  messages    ChatMessage[]
+
+  @@index([userId])
+  @@index([hotelId])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id             String            @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String
+  messageType    String            @default("text")
+  isRead         Boolean           @default(false)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User             @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@map("chat_messages")
+}
+
+model ChatOnlineStatus {
+  id        String   @id @default(uuid())
+  userId    String
+  isOnline  Boolean  @default(false)
+  lastSeen  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+  @@map("chat_online_status")
+}
+
+model ChatAnalytics {
+  id              String   @id @default(uuid())
+  userId          String
+  hotelId         String
+  totalMessages   Int      @default(0)
+  totalConversations Int   @default(0)
+  avgResponseTime Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hotel           Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([hotelId])
+  @@map("chat_analytics")
+}
+
+// Offer Analytics Model
+model OfferAnalytics {
+  id          String   @id @default(uuid())
+  userId      String
+  offerId     String?
+  views       Int      @default(0)
+  clicks      Int      @default(0)
+  bookings    Int      @default(0)
+  revenue     Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([offerId])
+  @@map("offer_analytics")
+}
+
+// Calendar Analytics Model
+model CalendarAnalytics {
+  id              String   @id @default(uuid())
+  userId          String
+  hotelId         String
+  totalBookings   Int      @default(0)
+  totalRevenue    Float    @default(0)
+  occupancyRate   Float?
+  avgDailyRate    Float?
+  revPAR          Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hotel           Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([hotelId])
+  @@map("calendar_analytics")
+}
+
+model Wallet {
+  id            String              @id @default(uuid())
+  userId        String              @unique
+  balance       Float               @default(0)
+  currency      String              @default("INR")
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  WalletTransaction[]
+
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id            String   @id @default(uuid())
+  walletId      String
+  type          String
+  amount        Float
+  description   String?
+  referenceId   String?
+  balanceBefore Float
+  balanceAfter  Float
+  createdAt     DateTime @default(now())
+  wallet        Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@map("wallet_transactions")
+}
+
+model SavedHotel {
+  id        String   @id @default(uuid())
+  userId    String
+  hotelId   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, hotelId])
+  @@index([userId])
+  @@index([hotelId])
+  @@map("saved_hotels")
+}
+
+model Coupon {
+  id            String        @id @default(uuid())
+  code          String        @unique
+  title         String
+  description   String?
+  discountType  String
+  discountValue Float
+  minAmount     Float?
+  maxDiscount   Float?
+  validFrom     DateTime
+  validTo       DateTime
+  usageLimit    Int?
+  usedCount     Int           @default(0)
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  usages        CouponUsage[]
+
+  @@map("coupons")
+}
+
+model CouponUsage {
+  id        String   @id @default(uuid())
+  couponId  String
+  userId    String
+  bookingId String?
+  usedAt    DateTime @default(now())
+  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+
+  @@index([couponId])
+  @@index([userId])
+  @@map("coupon_usages")
+}
